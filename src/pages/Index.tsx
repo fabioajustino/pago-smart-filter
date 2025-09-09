@@ -39,6 +39,7 @@ const Index = () => {
   const [costCenter, setCostCenter] = useState("");
   const [contractLimit, setContractLimit] = useState(10);
   const [customFilters, setCustomFilters] = useState<any[]>([]);
+  const [customFilterValues, setCustomFilterValues] = useState<{[key: string]: any}>({});
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date }>({});
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -59,7 +60,23 @@ const Index = () => {
     if (supplierName) count++;
     if (cnpj) count++;
     if (costCenter) count++;
-    count += customFilters.length;
+    
+    // Count active custom filters
+    customFilters.forEach(filter => {
+      const value = customFilterValues[filter.id];
+      if (filter.type === "range" || filter.type === "slider") {
+        if (value && (value[0] > filter.min || value[1] < filter.max)) count++;
+      } else if (filter.type === "multi-select") {
+        if (value && value.length > 0) count++;
+      } else if (filter.type === "checkbox") {
+        if (value === true) count++;
+      } else if (filter.type === "date" || filter.type === "interval") {
+        if (value) count++;
+      } else if (value && value.toString().trim() !== "") {
+        count++;
+      }
+    });
+    
     return count;
   };
 
@@ -84,11 +101,45 @@ const Index = () => {
   };
 
   const handleCreateFilter = (filter: any) => {
-    setCustomFilters(prev => [...prev, filter]);
+    const newFilter = { ...filter, id: Date.now().toString() };
+    setCustomFilters(prev => [...prev, newFilter]);
+    
+    // Initialize filter value based on type
+    if (filter.type === "range" || filter.type === "slider") {
+      setCustomFilterValues(prev => ({
+        ...prev,
+        [newFilter.id]: [filter.min, filter.max]
+      }));
+    } else if (filter.type === "multi-select") {
+      setCustomFilterValues(prev => ({
+        ...prev,
+        [newFilter.id]: []
+      }));
+    } else if (filter.type === "checkbox") {
+      setCustomFilterValues(prev => ({
+        ...prev,
+        [newFilter.id]: false
+      }));
+    } else if (filter.type === "date") {
+      setCustomFilterValues(prev => ({
+        ...prev,
+        [newFilter.id]: undefined
+      }));
+    } else {
+      setCustomFilterValues(prev => ({
+        ...prev,
+        [newFilter.id]: ""
+      }));
+    }
   };
 
   const handleDeleteFilter = (filterId: string) => {
     setCustomFilters(prev => prev.filter(f => f.id !== filterId));
+    setCustomFilterValues(prev => {
+      const newValues = { ...prev };
+      delete newValues[filterId];
+      return newValues;
+    });
   };
 
   const handleClearFilters = () => {
@@ -102,6 +153,7 @@ const Index = () => {
     setCnpj("");
     setCostCenter("");
     setCustomFilters([]);
+    setCustomFilterValues({});
     setContractValueAll(false);
     setPaymentValueAll(false);
     setDateRange({});
@@ -325,56 +377,155 @@ const Index = () => {
           </FilterCard>
 
           {/* Custom Filters */}
-          {customFilters.map((filter) => (
-            <FilterCard
-              key={filter.id}
-              title={filter.name}
-              isDeletable
-              onDelete={() => handleDeleteFilter(filter.id)}
-            >
-              {filter.type === "range" && (
-                <RangeSlider
-                  label="Valor"
-                  min={0}
-                  max={10000000}
-                  value={[0, 10000000]}
-                  onChange={() => {}}
-                  formatValue={(v) => `R$ ${(v / 1000000).toFixed(1)}M`}
-                />
-              )}
-              {filter.type === "dropdown" && (
-                <Select>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione uma opção" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="opcao1">Opção 1</SelectItem>
-                    <SelectItem value="opcao2">Opção 2</SelectItem>
-                    <SelectItem value="opcao3">Opção 3</SelectItem>
-                  </SelectContent>
-                </Select>
-              )}
-              {filter.type === "input" && (
-                <Input placeholder="Digite um valor" />
-              )}
-              {filter.type === "multi-select" && (
-                <div className="flex flex-wrap gap-2">
-                  <FilterChip label="Opção 1" active={false} onClick={() => {}} />
-                  <FilterChip label="Opção 2" active={false} onClick={() => {}} />
-                  <FilterChip label="Opção 3" active={false} onClick={() => {}} />
-                </div>
-              )}
-              {filter.type === "checkbox" && (
-                <div className="flex items-center space-x-2">
-                  <input type="checkbox" className="rounded" />
-                  <Label>Ativar filtro</Label>
-                </div>
-              )}
-              {filter.type === "date" && (
-                <Input type="date" />
-              )}
-            </FilterCard>
-          ))}
+          {customFilters.map((filter) => {
+            const formatValue = (value: number) => {
+              if (filter.label === "currency") return `R$ ${(value / 1000000).toFixed(1)}M`;
+              if (filter.label === "percentage") return `${value}%`;
+              return value.toLocaleString();
+            };
+
+            return (
+              <FilterCard
+                key={filter.id}
+                title={filter.name}
+                isDeletable
+                onDelete={() => handleDeleteFilter(filter.id)}
+              >
+                {(filter.type === "range" || filter.type === "slider") && (
+                  <RangeSlider
+                    label="Valor"
+                    min={filter.min}
+                    max={filter.max}
+                    value={customFilterValues[filter.id] || [filter.min, filter.max]}
+                    onChange={(value) => setCustomFilterValues(prev => ({ ...prev, [filter.id]: value }))}
+                    step={filter.step}
+                    formatValue={formatValue}
+                  />
+                )}
+                {filter.type === "dropdown" && (
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Selecione uma opção</Label>
+                    <Select 
+                      value={customFilterValues[filter.id] || ""} 
+                      onValueChange={(value) => setCustomFilterValues(prev => ({ ...prev, [filter.id]: value }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione uma opção" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {filter.options?.map((option: string, index: number) => (
+                          <SelectItem key={index} value={option}>{option}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+                {filter.type === "input" && (
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Valor</Label>
+                    <Input 
+                      placeholder={filter.placeholder || "Digite um valor"}
+                      value={customFilterValues[filter.id] || ""}
+                      onChange={(e) => setCustomFilterValues(prev => ({ ...prev, [filter.id]: e.target.value }))}
+                    />
+                  </div>
+                )}
+                {filter.type === "multi-select" && (
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Opções</Label>
+                    <div className="flex flex-wrap gap-2">
+                      {filter.options?.map((option: string, index: number) => {
+                        const selectedValues = customFilterValues[filter.id] || [];
+                        const isSelected = selectedValues.includes(option);
+                        return (
+                          <FilterChip
+                            key={index}
+                            label={option}
+                            active={isSelected}
+                            onClick={() => {
+                              const newValues = isSelected
+                                ? selectedValues.filter((v: string) => v !== option)
+                                : [...selectedValues, option];
+                              setCustomFilterValues(prev => ({ ...prev, [filter.id]: newValues }));
+                            }}
+                          />
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+                {filter.type === "checkbox" && (
+                  <div className="flex items-center space-x-2">
+                    <input 
+                      type="checkbox" 
+                      className="rounded"
+                      checked={customFilterValues[filter.id] || false}
+                      onChange={(e) => setCustomFilterValues(prev => ({ ...prev, [filter.id]: e.target.checked }))}
+                    />
+                    <Label>{filter.label || "Ativar filtro"}</Label>
+                  </div>
+                )}
+                {filter.type === "date" && (
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Data</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" className="w-full justify-start text-left font-normal">
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {customFilterValues[filter.id] ? (
+                            format(customFilterValues[filter.id], "dd/MM/yyyy", { locale: pt })
+                          ) : (
+                            "Selecionar data"
+                          )}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={customFilterValues[filter.id]}
+                          onSelect={(date) => setCustomFilterValues(prev => ({ ...prev, [filter.id]: date }))}
+                          className="pointer-events-auto"
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                )}
+                {filter.type === "interval" && (
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Intervalo de datas</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" className="w-full justify-start text-left font-normal">
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {customFilterValues[filter.id]?.from ? (
+                            customFilterValues[filter.id]?.to ? (
+                              <>
+                                {format(customFilterValues[filter.id].from, "dd/MM/yyyy", { locale: pt })} -{" "}
+                                {format(customFilterValues[filter.id].to, "dd/MM/yyyy", { locale: pt })}
+                              </>
+                            ) : (
+                              format(customFilterValues[filter.id].from, "dd/MM/yyyy", { locale: pt })
+                            )
+                          ) : (
+                            "Selecionar intervalo"
+                          )}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="range"
+                          selected={customFilterValues[filter.id] || {}}
+                          onSelect={(range) => setCustomFilterValues(prev => ({ ...prev, [filter.id]: range || {} }))}
+                          numberOfMonths={2}
+                          className="pointer-events-auto"
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                )}
+              </FilterCard>
+            );
+          })}
         </div>
 
         {/* Quantidade de Contratos */}
