@@ -19,7 +19,6 @@ export const CreateFilterModal = ({ open, onOpenChange, onCreateFilter }: Create
     type: "",
     table: "",
     field: "",
-    section: "",
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -34,7 +33,7 @@ export const CreateFilterModal = ({ open, onOpenChange, onCreateFilter }: Create
       ...formData,
     });
     
-    setFormData({ name: "", type: "", table: "", field: "", section: "" });
+    setFormData({ name: "", type: "", table: "", field: "" });
     setIsLoading(false);
     onOpenChange(false);
   };
@@ -78,32 +77,38 @@ export const CreateFilterModal = ({ open, onOpenChange, onCreateFilter }: Create
           
           <div className="space-y-2">
             <Label htmlFor="table">Tabela de origem *</Label>
-            <Input
-              id="table"
-              value={formData.table}
-              onChange={(e) => setFormData(prev => ({ ...prev, table: e.target.value }))}
-              required
-            />
+            <Select value={formData.table} onValueChange={(value) => setFormData(prev => ({ ...prev, table: value }))}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione a tabela" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="contratos">Contratos</SelectItem>
+                <SelectItem value="fornecedores">Fornecedores</SelectItem>
+                <SelectItem value="pagamentos">Pagamentos</SelectItem>
+                <SelectItem value="auditoria">Auditoria</SelectItem>
+                <SelectItem value="centros_custo">Centros de Custo</SelectItem>
+                <SelectItem value="aprovacoes">Aprovações</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           
           <div className="space-y-2">
             <Label htmlFor="field">Campo da tabela *</Label>
-            <Input
-              id="field"
-              value={formData.field}
-              onChange={(e) => setFormData(prev => ({ ...prev, field: e.target.value }))}
-              required
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="section">Seção</Label>
-            <Input
-              id="section"
-              value={formData.section}
-              onChange={(e) => setFormData(prev => ({ ...prev, section: e.target.value }))}
-              placeholder="Nova seção ou existente"
-            />
+            <Select value={formData.field} onValueChange={(value) => setFormData(prev => ({ ...prev, field: value }))}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione o campo" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="valor">Valor</SelectItem>
+                <SelectItem value="data_vencimento">Data de Vencimento</SelectItem>
+                <SelectItem value="status">Status</SelectItem>
+                <SelectItem value="categoria">Categoria</SelectItem>
+                <SelectItem value="prioridade">Prioridade</SelectItem>
+                <SelectItem value="responsavel">Responsável</SelectItem>
+                <SelectItem value="descricao">Descrição</SelectItem>
+                <SelectItem value="observacoes">Observações</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           
           <div className="flex justify-end space-x-2 pt-4">

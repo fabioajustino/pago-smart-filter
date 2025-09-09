@@ -332,27 +332,63 @@ const Index = () => {
               isDeletable
               onDelete={() => handleDeleteFilter(filter.id)}
             >
-              <div className="text-sm text-muted-foreground">
-                Tipo: {filter.type} | Tabela: {filter.table} | Campo: {filter.field}
-              </div>
+              {filter.type === "range" && (
+                <RangeSlider
+                  label="Valor"
+                  min={0}
+                  max={10000000}
+                  value={[0, 10000000]}
+                  onChange={() => {}}
+                  formatValue={(v) => `R$ ${(v / 1000000).toFixed(1)}M`}
+                />
+              )}
+              {filter.type === "dropdown" && (
+                <Select>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione uma opção" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="opcao1">Opção 1</SelectItem>
+                    <SelectItem value="opcao2">Opção 2</SelectItem>
+                    <SelectItem value="opcao3">Opção 3</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+              {filter.type === "input" && (
+                <Input placeholder="Digite um valor" />
+              )}
+              {filter.type === "multi-select" && (
+                <div className="flex flex-wrap gap-2">
+                  <FilterChip label="Opção 1" active={false} onClick={() => {}} />
+                  <FilterChip label="Opção 2" active={false} onClick={() => {}} />
+                  <FilterChip label="Opção 3" active={false} onClick={() => {}} />
+                </div>
+              )}
+              {filter.type === "checkbox" && (
+                <div className="flex items-center space-x-2">
+                  <input type="checkbox" className="rounded" />
+                  <Label>Ativar filtro</Label>
+                </div>
+              )}
+              {filter.type === "date" && (
+                <Input type="date" />
+              )}
             </FilterCard>
           ))}
+        </div>
 
-          {/* Quantidade de Contratos */}
-          <FilterCard title="Quantidade de Contratos">
-            <div>
-              <Label htmlFor="contract-limit" className="text-sm font-medium">Número de contratos a exibir</Label>
-              <Input
-                id="contract-limit"
-                type="number"
-                value={contractLimit}
-                onChange={(e) => setContractLimit(parseInt(e.target.value) || 10)}
-                min={1}
-                max={1000}
-                className="mt-2"
-              />
-            </div>
-          </FilterCard>
+        {/* Quantidade de Contratos */}
+        <div className="max-w-xs">
+          <Label htmlFor="contract-limit" className="text-sm font-medium">Número de contratos a exibir</Label>
+          <Input
+            id="contract-limit"
+            type="number"
+            value={contractLimit}
+            onChange={(e) => setContractLimit(parseInt(e.target.value) || 10)}
+            min={1}
+            max={1000}
+            className="mt-2 w-32"
+          />
         </div>
 
         {/* Action Buttons */}
